@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Landkreis Gießen – Riversplatz 1-9 | Navigation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 10px;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        .header h1 {
+            color: #2c3e50;
+            font-size: 1.8em;
+            margin-bottom: 10px;
+        }
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        .language-select {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 25px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #2c3e50;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        .language-select:hover {
+            background: white;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.3);
+        }
+        .locate-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 25px;
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        .locate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.3);
+        }
+        .map-container {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+        #map {
+            height: 100%;
+            width: 100%;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            background: #f0f0f0;
+            min-height: 400px;
+        }
+        /* Leaflet-specific Styles */
+        .leaflet-container {
+            background: #f0f0f0;
+        }
+        .leaflet-tile-pane {
+            opacity: 1;
+        }
+        .building-info {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+        .building-info.show {
+            transform: translateY(0);
+        }
+        .building-info h3 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 1.2em;
+        }
+        .building-info ul {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+        .building-info li {
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+            font-size: 0.9em;
+        }
+        .building-info li:last-child {
+            border-bottom: none;
+        }
+        .close-info {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: #666;
+            padding: 5px;
+        }
+        .status {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 8px 12px;
+            border-radius: 15px;
+            font-size: 0.8em;
+            color: #666;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+        }
+        .leaflet-popup-content {
+            font-family: inherit;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        .leaflet-popup-content h4 {
+            margin: 0 0 8px 0;
+            color: #2c3e50;
+        }
+        @media (max-width: 768px) {
+            .container {
+                padding: 5px;
+            }
+            .header {
+                padding: 15px;
+                margin-bottom: 10px;
+            }
+            .header h1 {
+                font-size: 1.5em;
+            }
+            .controls {
+                gap: 10px;
+            }
+            .language-select, .locate-btn {
+                padding: 8px 15px;
+                font-size: 0.9em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 id="title">Landkreis Gießen – Riversplatz 1-9 | Navigation</h1>
+            <div class="controls">
+                <select id="languageSelect" class="language-select">
+                    <option value="de">Deutsch</option>
+                    <option value="en">English</option>
+                    <option value="ar">العربية</option>
+                    <option value="fr">Français</option>
+                    <option value="uk">Українська</option>
+                </select>
+                <button id="locateBtn" class="locate-btn" title="📍">📍</button>
+            </div>
+        </div>
+
+        <div class="map-container">
+            <div id="map"></div>
+            <div class="building-info" id="buildingInfo">
+                <button class="close-info" onclick="hideInfo()">×</button>
+                <h3 id="buildingTitle"></h3>
+                <ul id="buildingContent"></ul>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+    <script>
+        /* ----------------- TRANSLATIONS ----------------- */
+        const translations = {
+            de: {
+                title: "Landkreis Gießen – Riversplatz 1-9 | Navigation",
+                locate: "Mein Standort",
+                buildings: {
+                    "Haus A": { name: "Haus A – Hauptgebäude", depts: ["Bürgerbüro", "KFZ-Zulassung", "Wahlen"] },
+                    "Haus B": { name: "Haus B – Soziales", depts: ["Sozialamt", "Jugendamt", "Familienkasse"] },
+                    "Haus C": { name: "Haus C – Ordnungsamt", depts: ["Ordnungsamt", "Verkehrsüberwachung", "Veterinäramt"] },
+                    "Haus D": { name: "Haus D – Bau", depts: ["Bauamt", "Stadtplanung", "Denkmalschutz"] },
+                    "Haus E": { name: "Haus E – Abfall", depts: ["Abfallwirtschaft", "Recycling", "Umwelt"] },
+                    "Haus F": { name: "Haus F – Schulen", depts: ["Schulamt", "Kulturbüro", "Bibliothek"] },
+                    "Infogebäude": { name: "Infogebäude", depts: ["Information", "Besucherservice", "Wartebereich"] }
+                }
+            },
+            en: {
+                title: "District of Gießen – Riversplatz 1-9 | Navigation",
+                locate: "My Location",
+                buildings: {
+                    "Haus A": { name: "Building A – Main Building", depts: ["Citizens' Office", "Vehicle Registration", "Elections"] },
+                    "Haus B": { name: "Building B – Social", depts: ["Social Services", "Youth Welfare Office", "Family Benefits"] },
+                    "Haus C": { name: "Building C – Public Order", depts: ["Public Order Office", "Trade Supervision", "Veterinary"] },
+                    "Haus D": { name: "Building D – Construction", depts: ["Building Authority", "Urban Planning", "Monuments"] },
+                    "Haus E": { name: "Building E – Waste", depts: ["Waste Management", "Recycling", "Environment"] },
+                    "Haus F": { name: "Building F – Schools", depts: ["School Authority", "Cultural Office", "Library"] },
+                    "Infogebäude": { name: "Info Building", depts: ["Information", "Visitor Service", "Waiting Area"] }
+                }
+            },
+            ar: {
+                title: "إدارة مقاطعة جيسن – Riversplatz 1-9 | ملاحة",
+                locate: "موقعي",
+                buildings: {
+                    "Haus A": { name: "المبنى أ – المبنى الرئيسي", depts: ["مكتب المواطنين", "تسجيل المركبات", "الانتخابات"] },
+                    "Haus B": { name: "المبنى ب – الخدمة الاجتماعية", depts: ["الخدمات الاجتماعية", "مكتب الشباب", "منافع العائلات"] },
+                    "Haus C": { name: "المبنى ج – مكتب النظام العام", depts: ["مكتب النظام العام", "الإشراف التجاري", "الطبيب البيطري"] },
+                    "Haus D": { name: "المبنى د – البناء", depts: ["سلطة البناء", "التخطيط الحضري", "الآثار"] },
+                    "Haus E": { name: "المبنى هـ – النفايات", depts: ["إدارة النفايات", "إعادة التدوير", "البيئة"] },
+                    "Haus F": { name: "المبنى و – المدارس", depts: ["سلطة المدارس", "مكتب الثقافي", "المكتبة"] },
+                    "Infogebäude": { name: "مبنى المعلومات", depts: ["المعلومات", "خدمة الزوار", "منطقة الانتظار"] }
+                }
+            },
+            fr: {
+                title: "Administration du District de Gießen – Riversplatz 1-9 | Navigation",
+                locate: "Ma position",
+                buildings: {
+                    "Haus A": { name: "Bâtiment A – Bâtiment principal", depts: ["Bureau des citoyens", "Immatriculation des véhicules", "Élections"] },
+                    "Haus B": { name: "Bâtiment B – Social", depts: ["Services sociaux", "Aide à la jeunesse", "Prestations familiales"] },
+                    "Haus C": { name: "Bâtiment C – Ordre", depts: ["Bureau de l'Ord", "Surveillance commerciale", "Vétérinaire"] },
+                    "Haus D": { name: "Bâtiment D – Construction", depts: ["Autorité de construction", "Urbanisme", "Monuments"] },
+                    "Haus E": { name: "Bâtiment E – Déchets", depts: ["Gestion des déchets", "Recyclage", "Environnement"] },
+                    "Haus F": { name: "Bâtiment F – Écoles", depts: ["Autorité scolaire", "Bureau culturel", "Bibliothèque"] },
+                    "Infogebäude": { name: "Bâtiment d'information", depts: ["Information", "Service visiteurs", "Salle d'attente"] }
+                }
+            },
+            uk: {
+                title: "Адміністрація району Гісен – Riversplatz 1-9 | Навігнення",
+                locate: "Моє місцезнаходження",
+                buildings: {
+                    "Haus A": { name: "Будівля А – Головна будівля", depts: ["Офіс громадян", "Реєстрація транспортних засобів", "Вибори"] },
+                    "Haus B": { name: "Будівля Б – Соціальні", depts: ["Соціальні послуги", "Молодіжні послуги", "Сімейні пільги"] },
+                    "Haus C": { name: "Будівля В – Порядок", depts: ["Офіс громадського поряду", "Торговий нагляд", "Ветеринар"] },
+                    "Haus D": { name: "Будівля Г – Будівництво", depts: ["Будівельна влада", "Міське планування", "Пам'ятки"] },
+                    "Haus E": { name: "Будівля Е – Відходи", depts: ["Управління відходами", "Переробка", "Довкілля"] },
+                    "Haus F": { name: "Будівля Е – Школи", depts: ["Шкільна влада", "Культурторний офіс", "Бібліотека"] },
+                    "Infogebäude": { name: "Інформаційна будівля", depts: ["Інформація", "Служба відвідувачів", "Зона очікування"] }
+                }
+            }
+        };
+
+        let currentLanguage = 'de';
+        let map, userMarker, userLocationCircle, buildingMarkers = [];
+        let watchId = null;
+
+        // Estimated coordinates for Kreisverwaltung Gießen (Riversplatz)
+        const centerCoords = [50.5865, 8.6779]; // Riversplatz 1-9
+        const buildingPositions = {
+            "Haus A": [50.58591, 8.67450],
+            "Haus B": [50.58564, 8.67393],
+            "Haus C": [50.58534, 8.67440],
+            "Haus D": [50.58578, 8.67472],
+            "Haus E": [50.58605, 8.67525],
+            "Haus F": [50.58638, 8.67478],
+            "Infogebäude": [50.58580, 8.67420]
+        };
+
+        function initMap() {
+            try {
+                if (typeof L === 'undefined') {
+                    console.error('Leaflet library not loaded');
+                    document.getElementById('status').textContent = 'Karte konnte nicht geladen werden';
+                    return;
+                }
+
+                map = L.map('map', {
+                    center: centerCoords,
+                    zoom: 18,
+                    zoomControl: true,
+                    attributionControl: true
+                });
+
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                }).addTo(map);
+
+                addBuildingMarkers();
+                map.whenReady(() => {
+                    console.log('Map ready');
+                    updateStatus('ready');
+                });
+
+                map.on('tileerror', (e) => {
+                    console.error('Tile loading error:', e);
+                });
+
+            } catch (error) {
+                console.error('Error initializing map:', error);
+                document.getElementById('status').textContent = 'Karte konnte nicht initialisiert werden';
+            }
+        }
+
+        function addBuildingMarkers() {
+            Object.entries(buildingPositions).forEach(([buildingKey, coords]) => {
+                const marker = L.marker(coords, {
+                        icon: L.divIcon({
+                            html: `<div style="background: #2c3e50; color: white; padding: 8px 12px; border-radius: 15px; font-size: 12px; font-weight: bold; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,.3);">${buildingKey.split(' ')[1]}</div>`,
+                            iconSize: [80, 40],
+                            iconAnchor: [40, 20]
+                        })
+                    }).bindPopup(`
+                        <div style="font-family: inherit;">
+                            <h4 style="margin: 0 0 8px 0; color: #2c3e50;">${translations[currentLanguage].buildings[buildingKey].name}</h4>
+                            <button onclick="showBuildingInfo('${buildingKey}')" style="background: #3498db; color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 12px;">
+                                Details anzeigen
+                            </button>
+                        </div>
+                    `).addTo(map);
+                buildingMarkers.push({ marker, data: buildingKey });
+            });
+        }
+
+        function showBuildingInfo(buildingKey) {
+            const currentTranslation = translations[currentLanguage];
+            const buildingInfo = currentTranslation.buildings[buildingKey];
+            document.getElementById('buildingTitle').textContent = buildingInfo.name;
+
+            const contentList = document.getElementById('buildingContent');
+            contentList.innerHTML = '';
+            buildingInfo.depts.forEach(dept => {
+                const li = document.createElement('li');
+                li.textContent = dept;
+                contentList.appendChild(li);
+            });
+            document.getElementById('buildingInfo').classList.add('show');
+        }
+
+        function hideBuildingInfo() {
+            document.getElementById('buildingInfo').classList.remove('show');
+        }
+
+        function updateStatus(status) {
+            const statusElement = document.getElementById('status');
+            statusElement.textContent = translations[currentLanguage].status[status];
+        }
+
+        function locateUser() {
+            if (!navigator.geolocation) {
+                alert('Geolocation not supported');
+                return;
+            }
+
+            updateStatus('locating');
+
+            const options = {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 300000
+            };
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const {latitude: lat, longitude: lng, accuracy: acc} = position.coords;
+                    const accuracy = acc;
+                    if (typeof map !== 'undefined' && map) {
+                        if (userMarker) {
+                            map.removeLayer(userMarker);
+                        }
+                        if (userLocationCircle) {
+                            map.removeLayer(userLocationCircle);
+                        }
+
+                        userMarker = L.marker([lat, lng], {
+                            icon: L.divIcon({
+                                html: `<div style="background: #e74c3c; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white;"></div>`,
+                                iconSize: [20, 20],
+                                iconAnchor: [10, 10]
+                            })
+                        }).addTo(map);
+
+                        userLocationCircle = L.circle([lat, lng], {
+                            color: '#e74c3c',
+                            fillColor: '#e74c3c',
+                            fillOpacity: 0.1,
+                            radius: acc
+                        }).addTo(map);
+
+                        // Map to user location
+                        map.setView([lat, lng], 19);
+                    }
+                    updateStatus('located');
+                },
+                (error) => {
+                    console.error('Geolocation error:', error);
+                    updateStatus('error');
+
+                    // Fallback: Center on district administration
+                    if (typeof map !== 'undefined' && map) {
+                        map.setView(centerCoords, 18);
+                    }
+                },
+                options
+            );
+        }
+
+        function startLocationTracking() {
+            if (watchId !== null) {
+                navigator.geolocation.clearWatch(watchId);
+            }
+
+            const options = {
+                enableHighAccuracy: true,
+                timeout: 5000,
+                maximumAge: 10000
+            };
+
+            watchId = navigator.geolocation.watchPosition(
+                (position) => {
+                    const {latitude: lat, longitude: lng, heading: heading} = position.coords;
+                    if (typeof map !== 'undefined' && map) {
+                        if (userMarker) {
+                            userMarker.setLatLng([lat, lng]);
+                        }
+
+                        if (heading !== null && heading !== undefined) {
+                            const rotation = heading;
+                            userMarker.setIcon(L.divIcon({
+                                html: `<div style="position: relative; top: -15px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-bottom: 5px solid transparent; border-top: 5px solid transparent;" + (rotation > 0 ? 'transform: rotate(' + rotation + 'deg);' : '') + '"></div>`,
+                                iconSize: [20, 20],
+                                iconAnchor: [10, 10]
+                            }));
+                        }
+                    }
+                },
+                (error) => {
+                    console.error('Location tracking error:', error);
+                }),
+                options
+            );
+        }
+
+        function closeWelcomePopup() {
+            document.getElementById('welcomePopup').classList.add('hidden');
+        }
+
+        function changeLanguage(lang) {
+            currentLanguage = lang;
+            updateUI();
+            addBuildingMarkers();
+        }
+
+        function updateUI() {
+            const translation = translations[currentLanguage];
+            document.getElementById('title').textContent = translation.title;
+            document.getElementById('locateBtn').title = translation.locate;
+            updateStatus('ready');
+        }
+
+        document.getElementById('languageSelect').addEventListener('change', (e) => {
+            changeLanguage(e.target.value);
+        });
+
+        document.getElementById('locateBtn').addEventListener('click', locateUser);
+
+        // Initialize map
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                initMap();
+            }, 100);
+        });
+
+        // Fallback if DOMContentLoaded already fired
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                setTimeout(() => {
+                    initMap();
+                }, 100);
+            });
+        } else {
+            setTimeout(() => {
+                initMap();
+            }, 100);
+        }
+
+        // Cleanup on page change
+        window.addEventListener('beforeunload', () => {
+            if (watchId !== null) {
+                navigator.geolocation.clearWatch(watchId);
+            }
+        });
+
+        // Touch optimization for mobile devices
+        document.addEventListener('touchstart', function() {}, {passive: true});
+    });
+    </script>
+</body>
+</html>
