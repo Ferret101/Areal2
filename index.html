@@ -3,22 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Landkreis Gießen | Wegweiser</title>
+    <title>Landkreis Gießen | Wegweiser - NEU</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" 
           integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" 
           crossorigin=""/>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #0072BC;
             color: #333;
             height: 100vh;
             overflow: hidden;
+            margin: 0;
+            padding: 0;
         }
         .container {
             max-width: 100%;
             margin: 0 auto;
-            padding: 10px;
+            padding: 0;
             height: 100vh;
             display: flex;
             flex-direction: column;
@@ -26,11 +28,16 @@
         .header {
             background: #0072BC;
             color: #fff;
-            padding: 1em;
-            border-radius: 15px;
-            margin-bottom: 10px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            padding: 40px 20px 25px 20px;
+            margin-bottom: 0;
+            box-shadow: none;
             text-align: center;
+            border: none;
+        }
+        .header .main-title {
+            font-size: 1.2em;
+            font-weight: 600;
+            margin-bottom: 15px;
         }
         .header h1 {
             color: #fff;
@@ -46,19 +53,24 @@
             flex-wrap: wrap;
         }
         .language-select {
-            padding: 12px 18px;
+            padding: 12px 8px 12px 45px;
             border: none;
             border-radius: 25px;
-            background: #005DAA;
+            background: #53AF32;
             color: #fff;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            box-shadow: none;
             font-size: 14px;
+            position: relative;
+        }
+        .language-select option {
+            background: #53AF32;
+            color: #fff;
         }
         .language-select:hover {
-            background: #53AF32;
+            background: #45a049;
             transform: translateY(-2px);
             box-shadow: 0 6px 20px rgba(83, 175, 50, 0.4);
         }
@@ -71,7 +83,7 @@
             font-weight: 500;
             cursor: pointer;
             transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            box-shadow: none;
         }
         .locate-btn:hover {
             background: #53AF32;
@@ -81,17 +93,16 @@
         .map-container {
             flex: 1;
             background: rgba(255, 255, 255, 0.95);
-            border-radius: 20px;
-            padding: 15px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            padding: 0;
+            box-shadow: none;
             position: relative;
             overflow: hidden;
         }
         #map {
             height: 100%;
             width: 100%;
-            border-radius: 15px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            border-radius: 0;
+            box-shadow: none;
             background: #f0f0f0;
             min-height: 400px;
         }
@@ -112,7 +123,7 @@
             background: #fff;
             border-radius: 15px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-            transform: translateY(100%);
+            transform: translateY(calc(100% + 40px));
             transition: transform 0.3s ease;
             z-index: 1000;
             max-height: 60vh;
@@ -159,7 +170,7 @@
             border-radius: 15px;
             font-size: 0.8em;
             color: #666;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            box-shadow: none;
             z-index: 1000;
         }
         .leaflet-popup-content {
@@ -187,11 +198,11 @@
         }
         @media (max-width: 768px) {
             .container {
-                padding: 5px;
+                padding: 0;
             }
             .header {
-                padding: 15px;
-                margin-bottom: 10px;
+                padding: 35px 20px 20px 20px;
+                margin-bottom: 0;
             }
             .header h1 {
                 font-size: 1.5em;
@@ -212,15 +223,19 @@
 <body>
     <div class="container">
         <div class="header">
+            <div class="main-title">LKGi - Wegweiser</div>
             <h1 id="title">Landkreis Gießen | Wegweiser</h1>
             <div class="controls">
-                <select id="languageSelect" class="language-select">
-                    <option value="de">🌐 Deutsch</option>
-                    <option value="en">🌐 English</option>
-                    <option value="ar">🌐 العربية</option>
-                    <option value="fr">🌐 Français</option>
-                    <option value="uk">🌐 Українська</option>
-                </select>
+                <div style="position: relative; display: inline-block;">
+                    <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); background: #fff; border-radius: 50%; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; font-size: 11px; z-index: 1;">🌐</span>
+                    <select id="languageSelect" class="language-select">
+                        <option value="de">Deutsch</option>
+                        <option value="en">English</option>
+                        <option value="ar">العربية</option>
+                        <option value="fr">Français</option>
+                        <option value="uk">Українська</option>
+                    </select>
+                </div>
                 <button id="locateBtn" class="locate-btn" title="📍">📍</button>
             </div>
         </div>
@@ -652,7 +667,7 @@
                 
                 // Aktualisiere Marker-Icon mit übersetztem Text und besserer Zentrierung
                 marker.setIcon(L.divIcon({
-                    html: `<div style="width: 20px; height: 20px; border: 3px solid #0072BC; border-radius: 50%; background: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; box-shadow: 0 4px 12px rgba(0, 114, 188, 0.4);">${markerText}</div>`,
+                    html: `<div style="width: 20px; height: 20px; border: 3px solid #fff; border-radius: 50%; background: #0072BC; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; box-shadow: 0 4px 12px rgba(0, 114, 188, 0.4);">${markerText}</div>`,
                     iconSize: [26, 26],
                     iconAnchor: [13, 13],
                     className: 'building-marker'
@@ -726,7 +741,7 @@
                     
                     const buildingMarker = L.marker(coords, {
                         icon: L.divIcon({
-                            html: `<div style="width: 20px; height: 20px; border: 3px solid #0072BC; border-radius: 50%; background: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; box-shadow: 0 4px 12px rgba(0, 114, 188, 0.4);">${markerText}</div>`,
+                            html: `<div style="width: 20px; height: 20px; border: 3px solid #fff; border-radius: 50%; background: #0072BC; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; box-shadow: 0 4px 12px rgba(0, 114, 188, 0.4);">${markerText}</div>`,
                             iconSize: [26, 26],
                             iconAnchor: [13, 13],
                             className: 'building-marker'

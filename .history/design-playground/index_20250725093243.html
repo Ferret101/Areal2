@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Landkreis Gießen | Wegweiser - DESIGN PLAYGROUND</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" 
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" 
+          crossorigin=""/>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #235B99 0%, #5AAD3F 100%);
+            color: #333;
+            height: 100vh;
+            overflow: hidden;
+            margin: 0;
+            padding: 0;
+            position: relative;
+        }
+        
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="20" cy="20" r="2" fill="rgba(255,255,254,0.1)"/><circle cx="80" cy="40" r="1" fill="rgba(255,255,254,0.1)"/><circle cx="40" cy="80" r="1.5" fill="rgba(255,255,254,0.1)"/><circle cx="90" cy="20" r="1" fill="rgba(255,255,254,0.1)"/><circle cx="10" cy="60" r="2.5" fill="rgba(255,255,254,0.1)"/><circle cx="70" cy="70" r="1" fill="rgba(255,255,254,0.1)"/></svg>');
+            z-index: -1;
+            opacity: 0.7;
+        }
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .header {
+            background: rgba(255, 255, 254, 0.15);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 254, 0.2);
+            color: #FFFFFE;
+            padding: 15px 20px;
+            margin-bottom: 0;
+            box-shadow: 0 4px 20px rgba(35, 91, 153, 0.1);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 254, 0.1), transparent);
+            animation: shimmer 3s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .header-title {
+            font-size: 1.4em;
+            font-weight: 600;
+            color: #FFFFFE;
+            margin: 0;
+        }
+        
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .landkreis-logo {
+            width: 45px;
+            height: 45px;
+            background: rgba(255, 255, 254, 0.2);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            color: #235B99;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 254, 0.3);
+        }
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .language-select {
+            padding: 8px 6px 8px 30px;
+            border: 1px solid rgba(255, 255, 254, 0.3);
+            border-radius: 20px;
+            background: rgba(90, 173, 63, 0.8);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            color: #FFFFFE;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 10px rgba(90, 173, 63, 0.3);
+            font-size: 12px;
+            position: relative;
+            min-width: 80px;
+        }
+        .language-select option {
+            background: #5AAD3F;
+            color: #FFFFFE;
+        }
+        .language-select:hover {
+            background: rgba(90, 173, 63, 0.9);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(90, 173, 63, 0.4);
+            border-color: rgba(255, 255, 254, 0.4);
+        }
+        .locate-btn {
+            padding: 8px 12px;
+            border: 1px solid rgba(255, 255, 254, 0.3);
+            border-radius: 20px;
+            background: rgba(35, 91, 153, 0.8);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            color: #FFFFFE;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 10px rgba(35, 91, 153, 0.3);
+            font-size: 18px;
+            width: 35px;
+            height: 35px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .locate-btn:hover {
+            background: rgba(90, 173, 63, 0.9);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(90, 173, 63, 0.4);
+            border-color: rgba(255, 255, 254, 0.4);
+        }
+        .map-container {
+            flex: 1;
+            background: rgba(255, 255, 254, 0.1);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 254, 0.2);
+            border-radius: 30px 30px 0 0;
+            margin: 0 20px;
+            padding: 0;
+            box-shadow: 0 -4px 20px rgba(35, 91, 153, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+        #map {
+            height: 100%;
+            width: 100%;
+            border-radius: 30px 30px 0 0;
+            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.05);
+            background: #f8f9fa;
+            min-height: 400px;
+        }
+        /* Leaflet-specific Styles */
+        .leaflet-container {
+            background: #f0f0f0;
+        }
+        .leaflet-tile-pane {
+            opacity: 1;
+        }
+        .building-info {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            background: rgba(255, 255, 254, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 254, 0.3);
+            padding: 1em;
+            border-radius: 25px;
+            box-shadow: 0 12px 40px rgba(35, 91, 153, 0.2);
+            transform: translateY(calc(100% + 40px));
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 1000;
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+        .building-info.show {
+            transform: translateY(0);
+            box-shadow: 0 20px 60px rgba(35, 91, 153, 0.25);
+        }
+        .building-info h3 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 1.2em;
+        }
+        .building-info ul {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+        .building-info li {
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+            font-size: 0.9em;
+        }
+        .building-info li:last-child {
+            border-bottom: none;
+        }
+        .close-info {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: #666;
+            padding: 5px;
+        }
+        .status {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 254, 0.9);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 254, 0.3);
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            color: #235B99;
+            box-shadow: 0 4px 20px rgba(35, 91, 153, 0.1);
+            z-index: 1000;
+        }
+        .leaflet-popup-content {
+            font-family: inherit;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        .leaflet-popup-content h4 {
+            margin: 0 0 8px 0;
+            color: #2c3e50;
+        }
+        .user-location-arrow {
+            background: none !important;
+            border: none !important;
+            box-shadow: 2px 2px 6px rgba(0,0,0,0.3) !important;
+            filter: drop-shadow(0 0 3px rgba(0, 122, 255, 0.8));
+        }
+        .building-marker {
+            background: none !important;
+            border: none !important;
+        }
+        .building-marker:hover {
+            transform: scale(1.1);
+            transition: transform 0.2s ease;
+        }
+        @media (max-width: 768px) {
+            .container {
+                padding: 0;
+            }
+            .header {
+                padding: 35px 20px 20px 20px;
+                margin-bottom: 0;
+            }
+            .header h1 {
+                font-size: 1.5em;
+            }
+            .controls {
+                gap: 10px;
+            }
+            .building-info {
+                bottom: 10px;
+                left: 10px;
+                right: 10px;
+                max-height: 50vh;
+                padding: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="main-title">LKGi - Wegweiser</div>
+            <h1 id="title">Landkreis Gießen | Wegweiser</h1>
+            <div class="controls">
+                <div style="position: relative; display: inline-block;">
+                    <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); background: #fff; border-radius: 50%; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; font-size: 11px; z-index: 1;">🌐</span>
+                    <select id="languageSelect" class="language-select">
+                        <option value="de">Deutsch</option>
+                        <option value="en">English</option>
+                        <option value="ar">العربية</option>
+                        <option value="fr">Français</option>
+                        <option value="uk">Українська</option>
+                    </select>
+                </div>
+                <button id="locateBtn" class="locate-btn" title="📍">📍</button>
+            </div>
+        </div>
+
+        <div class="map-container">
+            <div id="map"></div>
+            <div id="status" class="status">Lädt...</div>
+            <div class="building-info" id="buildingInfo">
+                <button class="close-info" onclick="hideInfo()">×</button>
+                <h3 id="buildingTitle"></h3>
+                <ul id="buildingContent"></ul>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" 
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" 
+            crossorigin=""></script>
+    <script>
+        // Globale Variablen
+        let map;
+        let userMarker;
+        let currentLanguage = 'de';
+        let buildingMarkers = [];
+
+        // Übersetzungen
+        const translations = {
+            de: {
+                title: "Landkreis Gießen | Wegweiser",
+                locateButton: "Mein Standort",
+                loading: "Lädt...",
+                mapLoaded: "Karte geladen",
+                locationNotSupported: "Geolocation wird nicht unterstützt",
+                locationError: "Standort konnte nicht ermittelt werden",
+                userLocation: "Ihr Standort",
+                locationFound: "Standort gefunden",
+                accuracy: "Genauigkeit",
+                gebaudeA: "Gebäude A",
+                gebaudeB: "Gebäude B", 
+                gebaudeC: "Gebäude C",
+                gebaudeD: "Gebäude D",
+                gebaudeE: "Gebäude E",
+                gebaudeF: "Gebäude F",
+                gebaudeG: "Gebäude G",
+                info: "Info",
+                buildingInfo: {
+                    "Gebäude A": [
+                        "Hauptverwaltung",
+                        "Bürgerbüro",
+                        "Landrat",
+                        "Kreisausschuss"
+                    ],
+                    "Gebäude B": [
+                        "Soziales",
+                        "Jugendamt",
+                        "Gesundheitsamt",
+                        "Veterinäramt"
+                    ],
+                    "Gebäude C": [
+                        "Ordnungsamt",
+                        "Ausländeramt",
+                        "Straßenverkehrsamt",
+                        "Führerscheinstelle"
+                    ],
+                    "Gebäude D": [
+                        "Bauamt",
+                        "Umweltamt",
+                        "Planungsamt",
+                        "Vermessungsamt"
+                    ],
+                    "Gebäude E": [
+                        "Finanzen",
+                        "Personal",
+                        "Organisation",
+                        "IT-Service"
+                    ],
+                    "Gebäude F": [
+                        "Schule & Bildung",
+                        "Kultur",
+                        "Sport",
+                        "Ehrenamt"
+                    ],
+                    "Gebäude G": [
+                        "Wirtschaftsförderung",
+                        "ÖPNV",
+                        "Tourismus",
+                        "Europa-Büro"
+                    ],
+                    "Info": [
+                        "Information",
+                        "Wegweiser",
+                        "Anmeldung",
+                        "Sicherheitsdienst"
+                    ]
+                }
+            },
+            en: {
+                title: "Landkreis Gießen | Wegweiser",
+                locateButton: "My Location",
+                loading: "Loading...",
+                mapLoaded: "Map loaded",
+                locationNotSupported: "Geolocation is not supported",
+                locationError: "Could not determine location",
+                userLocation: "Your Location",
+                locationFound: "Location found",
+                accuracy: "Accuracy",
+                gebaudeA: "Building A",
+                gebaudeB: "Building B",
+                gebaudeC: "Building C", 
+                gebaudeD: "Building D",
+                gebaudeE: "Building E",
+                gebaudeF: "Building F",
+                gebaudeG: "Building G",
+                info: "Info",
+                buildingInfo: {
+                    "Gebäude A": [
+                        "Main Administration",
+                        "Citizens' Office",
+                        "District Administrator",
+                        "District Committee"
+                    ],
+                    "Gebäude B": [
+                        "Social Services",
+                        "Youth Office",
+                        "Health Department",
+                        "Veterinary Office"
+                    ],
+                    "Gebäude C": [
+                        "Public Order Office",
+                        "Immigration Office",
+                        "Road Traffic Office",
+                        "Driver's License Office"
+                    ],
+                    "Gebäude D": [
+                        "Building Department",
+                        "Environmental Office",
+                        "Planning Office",
+                        "Surveying Office"
+                    ],
+                    "Gebäude E": [
+                        "Finance",
+                        "Human Resources",
+                        "Organization",
+                        "IT Service"
+                    ],
+                    "Gebäude F": [
+                        "Education",
+                        "Culture",
+                        "Sports",
+                        "Volunteering"
+                    ],
+                    "Gebäude G": [
+                        "Economic Development",
+                        "Public Transport",
+                        "Tourism",
+                        "Europe Office"
+                    ],
+                    "Info": [
+                        "Information",
+                        "Directory",
+                        "Registration",
+                        "Security Service"
+                    ]
+                }
+            },
+            ar: {
+                title: "Landkreis Gießen | Wegweiser",
+                locateButton: "موقعي",
+                loading: "جاري التحميل...",
+                mapLoaded: "تم تحميل الخريطة",
+                locationNotSupported: "تحديد الموقع الجغرافي غير مدعوم",
+                locationError: "لا يمكن تحديد الموقع",
+                userLocation: "موقعك",
+                locationFound: "تم العثور على الموقع",
+                accuracy: "الدقة",
+                gebaudeA: "المبنى أ",
+                gebaudeB: "المبنى ب",
+                gebaudeC: "المبنى ج",
+                gebaudeD: "المبنى د",
+                gebaudeE: "المبنى هـ",
+                gebaudeF: "المبنى و",
+                gebaudeG: "المبنى ز",
+                info: "معلومات",
+                buildingInfo: {
+                    "Gebäude A": [
+                        "الإدارة الرئيسية",
+                        "مكتب المواطنين",
+                        "مدير المقاطعة",
+                        "لجنة المقاطعة"
+                    ],
+                    "Gebäude B": [
+                        "الخدمات الاجتماعية",
+                        "مكتب الشباب",
+                        "دائرة الصحة",
+                        "المكتب البيطري"
+                    ],
+                    "Gebäude C": [
+                        "مكتب النظام العام",
+                        "مكتب الهجرة",
+                        "مكتب حركة المرور",
+                        "مكتب رخصة القيادة"
+                    ],
+                    "Gebäude D": [
+                        "دائرة البناء",
+                        "المكتب البيئي",
+                        "مكتب التخطيط",
+                        "مكتب المساحة"
+                    ],
+                    "Gebäude E": [
+                        "المالية",
+                        "الموارد البشرية",
+                        "التنظيم",
+                        "خدمة تكنولوجيا المعلومات"
+                    ],
+                    "Gebäude F": [
+                        "التعليم",
+                        "الثقافة",
+                        "الرياضة",
+                        "العمل التطوعي"
+                    ],
+                    "Gebäude G": [
+                        "التنمية الاقتصادية",
+                        "النقل العام",
+                        "السياحة",
+                        "مكتب أوروبا"
+                    ],
+                    "Info": [
+                        "المعلومات",
+                        "الدليل",
+                        "التسجيل",
+                        "خدمة الأمن"
+                    ]
+                }
+            },
+            fr: {
+                title: "Landkreis Gießen | Wegweiser",
+                locateButton: "Ma Position",
+                loading: "Chargement...",
+                mapLoaded: "Carte chargée",
+                locationNotSupported: "La géolocalisation n'est pas prise en charge",
+                locationError: "Impossible de déterminer la position",
+                userLocation: "Votre Position",
+                locationFound: "Position trouvée",
+                accuracy: "Précision",
+                gebaudeA: "Bâtiment A",
+                gebaudeB: "Bâtiment B",
+                gebaudeC: "Bâtiment C",
+                gebaudeD: "Bâtiment D", 
+                gebaudeE: "Bâtiment E",
+                gebaudeF: "Bâtiment F",
+                gebaudeG: "Bâtiment G",
+                info: "Info",
+                buildingInfo: {
+                    "Gebäude A": [
+                        "Administration Principale",
+                        "Bureau des Citoyens",
+                        "Administrateur du District",
+                        "Comité du District"
+                    ],
+                    "Gebäude B": [
+                        "Services Sociaux",
+                        "Bureau de la Jeunesse",
+                        "Département de la Santé",
+                        "Bureau Vétérinaire"
+                    ],
+                    "Gebäude C": [
+                        "Bureau de l'Ordre Public",
+                        "Bureau de l'Immigration",
+                        "Bureau de la Circulation",
+                        "Bureau du Permis de Conduire"
+                    ],
+                    "Gebäude D": [
+                        "Département de la Construction",
+                        "Bureau de l'Environnement",
+                        "Bureau de Planification",
+                        "Bureau d'Arpentage"
+                    ],
+                    "Gebäude E": [
+                        "Finance",
+                        "Ressources Humaines",
+                        "Organisation",
+                        "Service Informatique"
+                    ],
+                    "Gebäude F": [
+                        "Éducation",
+                        "Culture",
+                        "Sports",
+                        "Bénévolat"
+                    ],
+                    "Gebäude G": [
+                        "Développement Économique",
+                        "Transport Public",
+                        "Tourisme",
+                        "Bureau Europe"
+                    ],
+                    "Info": [
+                        "Information",
+                        "Répertoire",
+                        "Inscription",
+                        "Service de Sécurité"
+                    ]
+                }
+            },
+            uk: {
+                title: "Landkreis Gießen | Wegweiser",
+                locateButton: "Моє Місцезнаходження",
+                loading: "Завантаження...",
+                mapLoaded: "Карта завантажена",
+                locationNotSupported: "Геолокація не підтримується",
+                locationError: "Не вдалося визначити місцезнаходження",
+                userLocation: "Ваше Місцезнаходження",
+                locationFound: "Місцезнаходження знайдено",
+                accuracy: "Точність",
+                gebaudeA: "Будівля А",
+                gebaudeB: "Будівля Б",
+                gebaudeC: "Будівля В",
+                gebaudeD: "Будівля Г",
+                gebaudeE: "Будівля Д",
+                gebaudeF: "Будівля Е",
+                gebaudeG: "Будівля Ж",
+                info: "Інфо",
+                buildingInfo: {
+                    "Gebäude A": [
+                        "Головна Адміністрація",
+                        "Офіс Громадян",
+                        "Адміністратор Округу",
+                        "Комітет Округу"
+                    ],
+                    "Gebäude B": [
+                        "Соціальні Послуги",
+                        "Молодіжний Офіс",
+                        "Департамент Охорони Здоров'я",
+                        "Ветеринарний Офіс"
+                    ],
+                    "Gebäude C": [
+                        "Офіс Громадського Порядку",
+                        "Імміграційний Офіс",
+                        "Офіс Дорожнього Руху",
+                        "Офіс Водійських Прав"
+                    ],
+                    "Gebäude D": [
+                        "Будівельний Департамент",
+                        "Екологічний Офіс",
+                        "Офіс Планування",
+                        "Офіс Землемірства"
+                    ],
+                    "Gebäude E": [
+                        "Фінанси",
+                        "Людські Ресурси",
+                        "Організація",
+                        "ІТ Служба"
+                    ],
+                    "Gebäude F": [
+                        "Освіта",
+                        "Культура",
+                        "Спорт",
+                        "Волонтерство"
+                    ],
+                    "Gebäude G": [
+                        "Економічний Розвиток",
+                        "Громадський Транспорт",
+                        "Туризм",
+                        "Офіс Європи"
+                    ],
+                    "Info": [
+                        "Інформація",
+                        "Довідник",
+                        "Реєстрація",
+                        "Служба Безпеки"
+                    ]
+                }
+            }
+        };
+
+        // Initialisierung
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeMap();
+            setupEventListeners();
+            updateLanguage();
+        });
+
+        function setupEventListeners() {
+            // Sprache ändern
+            document.getElementById('languageSelect').addEventListener('change', function(e) {
+                currentLanguage = e.target.value;
+                updateLanguage();
+            });
+
+            // GPS-Lokalisierung
+            document.getElementById('locateBtn').addEventListener('click', locateUser);
+        }
+
+        function updateLanguage() {
+            const t = translations[currentLanguage];
+            document.getElementById('title').textContent = t.title;
+            document.getElementById('locateBtn').textContent = `📍 ${t.locateButton}`;
+            document.getElementById('status').textContent = t.loading;
+            
+            // Schließe Info-Panel beim Sprachwechsel
+            hideInfo();
+            
+            // Aktualisiere Marker-Labels falls die Karte bereits geladen ist
+            if (map && buildingMarkers.length > 0) {
+                updateMarkerLabels();
+            }
+        }
+
+        function updateMarkerLabels() {
+            const t = translations[currentLanguage];
+            
+            buildingMarkers.forEach(markerData => {
+                const { marker, name } = markerData;
+                let displayName = name;
+                
+                // Übersetze Gebäude-Namen entsprechend der Sprache
+                switch(name) {
+                    case "Gebäude A": displayName = t.gebaudeA; break;
+                    case "Gebäude B": displayName = t.gebaudeB; break;
+                    case "Gebäude C": displayName = t.gebaudeC; break;
+                    case "Gebäude D": displayName = t.gebaudeD; break;
+                    case "Gebäude E": displayName = t.gebaudeE; break;
+                    case "Gebäude F": displayName = t.gebaudeF; break;
+                    case "Gebäude G": displayName = t.gebaudeG; break;
+                    case "Info": displayName = t.info; break;
+                }
+                
+                // Bestimme Marker-Text (Buchstabe für Gebäude, "I" für Info)
+                let markerText = name === "Info" ? "I" : displayName.slice(-1);
+                
+                // Aktualisiere Marker-Icon mit übersetztem Text und besserer Zentrierung
+                marker.setIcon(L.divIcon({
+                    html: `<div style="width: 20px; height: 20px; border: 2px solid rgba(255, 255, 254, 0.8); border-radius: 50%; background: rgba(35, 91, 153, 0.9); backdrop-filter: blur(10px); color: #FFFFFE; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; box-shadow: 0 6px 20px rgba(35, 91, 153, 0.4);">${markerText}</div>`,
+                    iconSize: [26, 26],
+                    iconAnchor: [13, 13],
+                    className: 'building-marker'
+                }));
+            });
+        }
+
+        function initializeMap() {
+            try {
+                // Überprüfe ob Leaflet geladen ist
+                if (typeof L === 'undefined') {
+                    console.error('Leaflet not loaded!');
+                    document.getElementById('status').textContent = translations[currentLanguage].loading;
+                    return;
+                }
+
+                // Erstelle die Karte (AMTLICHE Koordinaten - Zentrum zwischen den Gebäuden)
+                map = L.map('map').setView([50.5749, 8.7089], 18);
+
+                // Definiere Grenzen für die Kartenansicht (ca. 200m Radius um das Zentrum)
+                const bounds = L.latLngBounds(
+                    [50.5729, 8.7069], // Southwest corner
+                    [50.5769, 8.7109]  // Northeast corner
+                );
+                map.setMaxBounds(bounds);
+                map.on('drag', function() {
+                    map.panInsideBounds(bounds, { animate: false });
+                });
+
+                // Füge Tiles hinzu
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19,
+                    minZoom: 17, // Erlaube ca. 100m weiteres Rauszoomen
+                    attribution: '© OpenStreetMap contributors'
+                }).addTo(map);
+
+                // Status aktualisieren
+                document.getElementById('status').textContent = translations[currentLanguage].mapLoaded;
+
+                // Gebäude-Marker hinzufügen (AMTLICHE KOORDINATEN)
+                const buildings = {
+                    "Gebäude A": [50.57518992739294816, 8.70838573811109384],
+                    "Gebäude B": [50.57454581481103162, 8.7077837800067357], 
+                    "Gebäude C": [50.57415466848566865, 8.70829926653693676],
+                    "Gebäude D": [50.57438623824244672, 8.70939668314574433],
+                    "Gebäude E": [50.57504732952577342, 8.71001457548033819],
+                    "Gebäude F": [50.57573098437185877, 8.7097731683841797],
+                    "Gebäude G": [50.5758340204584016, 8.70898754079399851],
+                    "Info": [50.57392270241523136, 8.70897560380057634]
+                };
+
+                // Füge Gebäude-Marker hinzu
+                Object.entries(buildings).forEach(([name, coords]) => {
+                    const t = translations[currentLanguage];
+                    let displayName = name;
+                    
+                    // Übersetze Gebäude-Namen entsprechend der Sprache
+                    switch(name) {
+                        case "Gebäude A": displayName = t.gebaudeA; break;
+                        case "Gebäude B": displayName = t.gebaudeB; break;
+                        case "Gebäude C": displayName = t.gebaudeC; break;
+                        case "Gebäude D": displayName = t.gebaudeD; break;
+                        case "Gebäude E": displayName = t.gebaudeE; break;
+                        case "Gebäude F": displayName = t.gebaudeF; break;
+                        case "Gebäude G": displayName = t.gebaudeG; break;
+                        case "Info": displayName = t.info; break;
+                    }
+                    
+                    // Bestimme Marker-Text (Buchstabe für Gebäude, "I" für Info)
+                    let markerText = name === "Info" ? "I" : displayName.slice(-1);
+                    
+                    const buildingMarker = L.marker(coords, {
+                        icon: L.divIcon({
+                            html: `<div style="width: 20px; height: 20px; border: 2px solid rgba(255, 255, 254, 0.8); border-radius: 50%; background: rgba(35, 91, 153, 0.9); backdrop-filter: blur(10px); color: #FFFFFE; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; box-shadow: 0 6px 20px rgba(35, 91, 153, 0.4);">${markerText}</div>`,
+                            iconSize: [26, 26],
+                            iconAnchor: [13, 13],
+                            className: 'building-marker'
+                        })
+                    }).addTo(map);
+
+                    // Speichere Marker für spätere Updates
+                    buildingMarkers.push({ marker: buildingMarker, name: name });
+
+                    // Click-Event für detaillierte Informationen mit Toggle-Funktion
+                    buildingMarker.on('click', function() {
+                        const buildingInfoPanel = document.getElementById('buildingInfo');
+                        const currentTitle = document.getElementById('buildingTitle').textContent;
+                        
+                        // Wenn das gleiche Gebäude bereits angezeigt wird, schließe das Panel
+                        if (buildingInfoPanel.classList.contains('show') && currentTitle === displayName) {
+                            hideInfo();
+                        } else {
+                            showBuildingInfo(name);
+                        }
+                    });
+                });
+
+            } catch (error) {
+                console.error('Error initializing map:', error);
+                document.getElementById('status').textContent = 'Fehler: ' + error.message;
+            }
+        }
+
+        function locateUser() {
+            if (!navigator.geolocation) {
+                alert(translations[currentLanguage].locationNotSupported);
+                return;
+            }
+
+            document.getElementById('status').textContent = translations[currentLanguage].loading;
+
+            // Einfache einmalige Positionsabfrage - sofortiger Standort
+            navigator.geolocation.getCurrentPosition(function(position) {
+                const lat = position.coords.latitude;
+                const lng = position.coords.longitude;
+                const heading = position.coords.heading || 0;
+                const accuracy = position.coords.accuracy;
+                const t = translations[currentLanguage];
+
+                // Entferne vorherigen Benutzer-Marker
+                if (userMarker) {
+                    map.removeLayer(userMarker);
+                }
+
+                // Erstelle Richtungspfeil
+                const arrowIcon = L.divIcon({
+                    html: `<div style="transform: rotate(${heading}deg); font-size: 24px; text-align: center; line-height: 1; color: #007AFF;">▲</div>`,
+                    iconSize: [30, 30],
+                    iconAnchor: [15, 15],
+                    className: 'user-location-arrow'
+                });
+
+                // Füge Benutzer-Marker hinzu
+                userMarker = L.marker([lat, lng], {
+                    icon: arrowIcon
+                }).addTo(map);
+
+                // Zentriere Karte auf Benutzerposition
+                map.setView([lat, lng], 17);
+
+                document.getElementById('status').textContent = `${t.locationFound} (±${Math.round(accuracy)}m)`;
+
+            }, function(error) {
+                console.error('Geolocation error:', error);
+                document.getElementById('status').textContent = translations[currentLanguage].locationError;
+            }, {
+                enableHighAccuracy: true,
+                timeout: 15000,
+                maximumAge: 30000
+            });
+        }
+
+        // Entferne die komplexen Tracking-Funktionen
+        function startTracking() {
+            // Nicht mehr verwendet
+        }
+
+        function stopTracking() {
+            // Nicht mehr verwendet
+        }
+
+        function updateUserPosition(position) {
+            // Nicht mehr verwendet
+        }
+
+        function handleLocationError(error) {
+            // Nicht mehr verwendet
+        }
+
+        function showBuildingInfo(buildingName) {
+            const t = translations[currentLanguage];
+            const info = t.buildingInfo[buildingName];
+            
+            if (!info) return;
+
+            // Übersetze Gebäude-Name für Anzeige
+            let displayName = buildingName;
+            switch(buildingName) {
+                case "Gebäude A": displayName = t.gebaudeA; break;
+                case "Gebäude B": displayName = t.gebaudeB; break;
+                case "Gebäude C": displayName = t.gebaudeC; break;
+                case "Gebäude D": displayName = t.gebaudeD; break;
+                case "Gebäude E": displayName = t.gebaudeE; break;
+                case "Gebäude F": displayName = t.gebaudeF; break;
+                case "Gebäude G": displayName = t.gebaudeG; break;
+                case "Info": displayName = t.info; break;
+            }
+
+            document.getElementById('buildingTitle').textContent = displayName;
+            
+            const contentList = document.getElementById('buildingContent');
+            contentList.innerHTML = '';
+            
+            info.forEach(item => {
+                const li = document.createElement('li');
+                li.textContent = item;
+                contentList.appendChild(li);
+            });
+
+            document.getElementById('buildingInfo').classList.add('show');
+        }
+
+        function hideInfo() {
+            document.getElementById('buildingInfo').classList.remove('show');
+        }
+    </script>
+</body>
+</html>
